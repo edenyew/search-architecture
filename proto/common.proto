@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package search.common;
+
+// A single search result: a document from the corpus plus its
+// relevance score for the query that produced this result.
+message Document {
+  string id = 1;
+  string text = 2;
+  double score = 3;
+}
+
+// Shared query shape used by every service that accepts a search
+// query (Retrieval, Controller, Cache, Sorter), so callers/callees
+// agree on one definition instead of each service redeclaring it.
+message SearchQuery {
+  string query_text = 1;
+  int32 top_k = 2;
+}

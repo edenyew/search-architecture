@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package search.controller;
+
+import "common.proto";
+
+// Controller is the orchestration seam: classify() picks a route,
+// orchestrate() fans out to backends and merges results. Phase 1:
+// classify() is a stub and orchestrate() makes a single call to
+// Retrieval. The public RPC contract stays the same as fan-out,
+// caching, and re-ranking are added behind it in later phases.
+service Controller {
+  rpc Search(search.common.SearchQuery) returns (SearchResponse);
+}
+
+message SearchResponse {
+  repeated search.common.Document documents = 1;
+}

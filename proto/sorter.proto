@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package search.sorter;
+
+import "common.proto";
+
+// Sorter merges/re-ranks candidate documents gathered from parallel
+// backends (BM25 + vector) once fan-out exists. Defined in Phase 1
+// to fix the interface; not implemented or called until Phase 2.
+service Sorter {
+  rpc Rerank(RerankRequest) returns (RerankResponse);
+}
+
+message RerankRequest {
+  search.common.SearchQuery query = 1;
+  repeated search.common.Document candidates = 2;
+}
+
+message RerankResponse {
+  repeated search.common.Document documents = 1;
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package search.retrieval;
+
+import "common.proto";
+
+// Retrieval owns the in-RAM BM25 index (loaded from a file built
+// offline by the indexer) and answers queries against it directly.
+service Retrieval {
+  rpc Search(search.common.SearchQuery) returns (SearchResponse);
+}
+
+message SearchResponse {
+  repeated search.common.Document documents = 1;
+}

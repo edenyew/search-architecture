@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package search.cache;
+
+import "common.proto";
+
+// Cache-aside lookup in front of Retrieval: Get() short-circuits on
+// a hit; on a miss, the caller retrieves normally and writes the
+// result back with Put() so the next identical query hits.
+// Defined in Phase 1 to fix the interface; not implemented or
+// called until Phase 2.
+service Cache {
+  rpc Get(search.common.SearchQuery) returns (GetResponse);
+  rpc Put(PutRequest) returns (PutResponse);
+}
+
+message GetResponse {
+  bool hit = 1;
+  repeated search.common.Document documents = 2;
+}
+
+message PutRequest {
+  search.common.SearchQuery query = 1;
+  repeated search.common.Document documents = 2;
+}
+
+message PutResponse {
+  bool ok = 1;
+}
