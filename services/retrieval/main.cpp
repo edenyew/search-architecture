@@ -16,12 +16,10 @@ namespace {
 
 class RetrievalServiceImpl final : public search::retrieval::Retrieval::Service {
  public:
-  RetrievalServiceImpl(common::InvertedIndex index,
-                       std::unordered_map<std::string, std::string> id_to_text)
+  RetrievalServiceImpl(common::InvertedIndex index, std::unordered_map<std::string, std::string> id_to_text)
       : index_(std::move(index)), id_to_text_(std::move(id_to_text)) {}
 
-  grpc::Status Search(grpc::ServerContext* /*context*/, const search::common::SearchQuery* request,
-                      search::retrieval::SearchResponse* response) override {
+  grpc::Status Search(grpc::ServerContext*, const search::common::SearchQuery* request, search::retrieval::SearchResponse* response) override {
     std::vector<std::string> query_tokens = common::Tokenize(request->query_text());
     std::vector<common::ScoredDoc> scored = index_.Search(query_tokens, request->top_k());
 

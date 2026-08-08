@@ -10,20 +10,16 @@
 #include "controller.grpc.pb.h"
 #include "crow.h"
 
-int main()
-{
+int main() {
   const std::string controller_address = "localhost:50050";
 
-  std::shared_ptr<grpc::Channel> channel =
-      grpc::CreateChannel(controller_address, grpc::InsecureChannelCredentials());
-  std::unique_ptr<search::controller::Controller::Stub> stub =
-      search::controller::Controller::NewStub(channel);
+  std::shared_ptr<grpc::Channel> channel = grpc::CreateChannel(controller_address, grpc::InsecureChannelCredentials());
+  std::unique_ptr<search::controller::Controller::Stub> stub = search::controller::Controller::NewStub(channel);
 
   crow::SimpleApp app;
 
   CROW_ROUTE(app, "/search")
-  ([&stub](const crow::request &req)
-   {
+  ([&stub](const crow::request& req) {
     const char* q = req.url_params.get("q");
     if (q == nullptr || std::string(q).empty()) {
       return crow::response(400, "missing required query parameter: q");
@@ -57,7 +53,8 @@ int main()
     }
     result["documents"] = std::move(docs);
 
-    return crow::response{result}; });
+    return crow::response{result};
+  });
 
   std::printf("gateway listening on 0.0.0.0:8080 (controller at %s)\n", controller_address.c_str());
   app.port(8080).multithreaded().run();

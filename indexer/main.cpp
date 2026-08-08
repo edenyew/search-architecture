@@ -20,8 +20,7 @@ int main() {
   }
 
   index.Save(index_path);
-  std::printf("wrote index (%d docs, avgdl=%.2f) to %s\n", index.NumDocs(), index.AvgDocLength(),
-              index_path.c_str());
+  std::printf("wrote index (%d docs, avgdl=%.2f) to %s\n", index.NumDocs(), index.AvgDocLength(), index_path.c_str());
 
   return 0;
 }

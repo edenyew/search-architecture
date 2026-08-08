@@ -47,8 +47,7 @@ std::string ReadString(std::ifstream& in) {
 
 }  // namespace
 
-void InvertedIndex::AddDocument(const std::string& external_id,
-                                const std::vector<std::string>& tokens) {
+void InvertedIndex::AddDocument(const std::string& external_id, const std::vector<std::string>& tokens) {
   int doc_id = static_cast<int>(doc_ids_.size());
   doc_ids_.push_back(external_id);
   doc_lengths_.push_back(static_cast<int>(tokens.size()));
@@ -63,7 +62,9 @@ void InvertedIndex::AddDocument(const std::string& external_id,
   }
 }
 
-int InvertedIndex::NumDocs() const { return static_cast<int>(doc_ids_.size()); }
+int InvertedIndex::NumDocs() const {
+  return static_cast<int>(doc_ids_.size());
+}
 
 double InvertedIndex::AvgDocLength() const {
   if (doc_lengths_.empty()) return 0.0;
@@ -75,10 +76,11 @@ double InvertedIndex::AvgDocLength() const {
   return static_cast<double>(total) / static_cast<double>(doc_lengths_.size());
 }
 
-const std::string& InvertedIndex::ExternalId(int doc_id) const { return doc_ids_[doc_id]; }
+const std::string& InvertedIndex::ExternalId(int doc_id) const {
+  return doc_ids_[doc_id];
+}
 
-std::vector<ScoredDoc> InvertedIndex::Search(const std::vector<std::string>& query_tokens,
-                                             int top_k) const {
+std::vector<ScoredDoc> InvertedIndex::Search(const std::vector<std::string>& query_tokens, int top_k) const {
   constexpr double k1 = 1.5;
   constexpr double b = 0.75;
 
@@ -109,8 +111,7 @@ std::vector<ScoredDoc> InvertedIndex::Search(const std::vector<std::string>& que
     results.push_back(ScoredDoc{doc_id, score});
   }
 
-  std::sort(results.begin(), results.end(),
-            [](const ScoredDoc& a, const ScoredDoc& b) { return a.score > b.score; });
+  std::sort(results.begin(), results.end(), [](const ScoredDoc& a, const ScoredDoc& b) { return a.score > b.score; });
 
   if (static_cast<int>(results.size()) > top_k) {
     results.resize(top_k);
