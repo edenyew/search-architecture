@@ -1,5 +1,6 @@
 #include <grpcpp/grpcpp.h>
 
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
@@ -9,6 +10,7 @@
 #include "common.pb.h"
 #include "controller.grpc.pb.h"
 #include "crow.h"
+#include "trace.h"
 
 int main() {
   const std::string controller_address = "localhost:50050";
@@ -20,6 +22,9 @@ int main() {
 
   CROW_ROUTE(app, "/search")
   ([&stub](const crow::request& req) {
+    const auto start = std::chrono::steady_clock::now();
+    const std::string trace_id = common::GenerateTraceId();
+
     const char* q = req.url_params.get("q");
     if (q == nullptr || std::string(q).empty()) {
       return crow::response(400, "missing required query parameter: q");
@@ -36,9 +41,11 @@ int main() {
 
     search::controller::SearchResponse controller_response;
     grpc::ClientContext context;
+    common::AttachTraceId(&context, trace_id);
     grpc::Status status = stub->Search(&context, request, &controller_response);
 
     if (!status.ok()) {
+      common::LogStage(trace_id, "gateway", "total (controller call failed)", std::chrono::steady_clock::now() - start);
       return crow::response(502, "controller call failed: " + status.error_message());
     }
 
@@ -53,6 +60,7 @@ int main() {
     }
     result["documents"] = std::move(docs);
 
+    common::LogStage(trace_id, "gateway", "total", std::chrono::steady_clock::now() - start);
     return crow::response{result};
   });
 

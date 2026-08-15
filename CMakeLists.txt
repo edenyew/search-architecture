@@ -15,6 +15,15 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
+# redis++'s CMake package requires hiredis to have one too, but
+# Homebrew's hiredis only ships a plain library + pkg-config file
+# (same gap as Crow/Asio) — so locate both directly instead.
+find_library(REDISPLUSPLUS_LIB redis++ REQUIRED)
+find_library(HIREDIS_LIB hiredis REQUIRED)
+
+# onnxruntime also has no CMake package — same situation.
+find_library(ONNXRUNTIME_LIB onnxruntime REQUIRED)
+
 # --- Protobuf/gRPC codegen -------------------------------------------------
 #
 # common.proto declares messages only (no service), so it only needs
@@ -27,7 +36,7 @@ set(PROTO_GEN_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
 set(MESSAGE_ONLY_PROTOS common)
-set(SERVICE_PROTOS retrieval controller cache sorter)
+set(SERVICE_PROTOS retrieval controller cache reranker)
 
 set(ALL_PROTO_GENERATED_SRCS)
 
@@ -80,3 +89,5 @@ add_subdirectory(indexer)
 add_subdirectory(services/retrieval)
 add_subdirectory(services/controller)
 add_subdirectory(services/gateway)
+add_subdirectory(services/cache)
+add_subdirectory(services/reranker)

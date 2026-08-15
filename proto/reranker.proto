@@ -1,13 +1,14 @@
 syntax = "proto3";
 
-package search.sorter;
+package search.reranker;
 
 import "common.proto";
 
-// Sorter merges/re-ranks candidate documents gathered from parallel
-// backends (BM25 + vector) once fan-out exists. Defined in Phase 1
-// to fix the interface; not implemented or called until Phase 2.
-service Sorter {
+// Reranker merges/re-ranks candidate documents gathered from
+// parallel backends (BM25 + vector) once fan-out exists. Defined in
+// Phase 1 to fix the interface; not implemented or called until
+// Phase 2.
+service Reranker {
   rpc Rerank(RerankRequest) returns (RerankResponse);
 }
 

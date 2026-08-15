@@ -3,4 +3,4 @@ add_executable(gateway
 )
 
 target_include_directories(gateway PRIVATE /opt/homebrew/include)
-target_link_libraries(gateway PRIVATE proto_lib Threads::Threads)
+target_link_libraries(gateway PRIVATE common_lib proto_lib Threads::Threads)

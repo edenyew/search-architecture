@@ -11,7 +11,7 @@ message Document {
 }
 
 // Shared query shape used by every service that accepts a search
-// query (Retrieval, Controller, Cache, Sorter), so callers/callees
+// query (Retrieval, Controller, Cache, Reranker), so callers/callees
 // agree on one definition instead of each service redeclaring it.
 message SearchQuery {
   string query_text = 1;
