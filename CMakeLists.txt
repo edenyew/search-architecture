@@ -36,7 +36,7 @@ set(PROTO_GEN_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${PROTO_GEN_DIR})
 
 set(MESSAGE_ONLY_PROTOS common)
-set(SERVICE_PROTOS retrieval controller cache reranker)
+set(SERVICE_PROTOS retrieval controller cache reranker health)
 
 set(ALL_PROTO_GENERATED_SRCS)
 

@@ -8,5 +8,6 @@
   },
   "C_Cpp.formatting": "clangFormat",
   "C_Cpp.clang_format_style": "file",
-  "C_Cpp.clang_format_path": "/opt/homebrew/bin/clang-format"
+  "C_Cpp.clang_format_path": "/opt/homebrew/bin/clang-format",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json"
 }
