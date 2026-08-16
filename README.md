@@ -4,10 +4,10 @@ A distributed search backend in C++. Five services communicating over gRPC,
 a REST edge, Redis cache, hybrid BM25/vector retrieval, and request tracing
 via a propagated correlation ID. Runs locally, no cloud dependency.
 
-Scope note: ranking quality is not the focus. BM25 + vector fusion works and
-is real, but the project exists to work through service architecture —
-fan-out/fan-in, caching, parallel execution, request correlation across
-process boundaries.
+Scope note: ranking quality is not the focus — BM25 + vector fusion is
+functional but basic. The project is about service architecture: fan-out/
+fan-in, caching, parallel execution, request correlation across process
+boundaries.
 
 ---
 
@@ -50,15 +50,26 @@ and Reranker. Miss → call Retrieval, call Reranker, write the final
 (post-rerank) result back to Cache. Cache stores the finished answer, so a
 hit never re-runs reranking.
 
-**Retrieval.** BM25 and vector search run concurrently (`std::async`) against
-the same query, then get combined with Reciprocal Rank Fusion. RRF combines
-by rank position, not raw score — BM25 scores and cosine similarities aren't
+**Retrieval.** BM25 and vector search run concurrently, dispatched to a
+bounded worker pool (not raw `std::async` per call), against the same
+query, then get combined with Reciprocal Rank Fusion. RRF combines by
+rank position, not raw score — BM25 scores and cosine similarities aren't
 on comparable scales.
 
 **Tracing.** Trace ID generated once at Gateway, attached to every outgoing
 gRPC call's metadata, read back and re-attached at each hop. Every service
 logs its own stage timing tagged with that ID. One trace ID, grepped across
 all five services' logs, reconstructs a request's full path and timing.
+
+**Reliability.** One absolute deadline for the whole request, set at Gateway
+and propagated unchanged to every downstream call — caps total request time
+instead of compounding a fresh timeout at each hop. Controller retries
+Retrieval up to 3 times, only on `UNAVAILABLE`. A circuit breaker trips after
+3 consecutive Retrieval failures and short-circuits further calls instantly
+— no attempt made — until a reset timeout elapses; recovery is then tested
+with a dedicated gRPC health check (`Check()`) rather than a real search
+request. Retrieval itself sheds load outright (`RESOURCE_EXHAUSTED`) once
+its bounded worker pool's queue is full, instead of queueing unbounded work.
 
 ---
 
@@ -69,7 +80,7 @@ all five services' logs, reconstructs a request's full path and timing.
 | Services / indexer | C++20 |
 | Internal RPC | gRPC + Protobuf |
 | Edge REST | Crow |
-| Concurrency | `std::async` / `std::future` |
+| Concurrency | Bounded thread pool (Retrieval) + `std::future` for async results |
 | BM25 index | Custom inverted index, custom binary serialization |
 | Tokenization (BM25) | Custom whitespace/punctuation tokenizer |
 | Tokenization (embeddings) | Custom WordPiece tokenizer — verified against HuggingFace's tokenizer output |
@@ -143,13 +154,17 @@ grep "\[<trace_id>\]" /tmp/*.log
 
 ```
 proto/                  gRPC contracts — defines every service boundary
+                         (health.proto: vendored standard gRPC health-check
+                         protocol, used by Controller's circuit breaker)
 common/                 Shared: corpus loading, BM25 index, WordPiece tokenizer,
                          ONNX embedder, embedding store, trace propagation
 indexer/                 Offline: corpus → BM25 index + embeddings
 services/
-  gateway/               REST edge, generates trace ID
-  controller/             classify() + orchestrate(): fan-out, merge
-  retrieval/               BM25 ‖ vector + RRF fusion
+  gateway/               REST edge, generates trace ID, sets request deadline
+  controller/             classify() + orchestrate(): fan-out, merge, retry,
+                           circuit breaker (circuit_breaker.h/.cpp)
+  retrieval/               BM25 ‖ vector + RRF fusion, bounded worker pool
+                           + load shedding (thread_pool.h/.cpp)
   cache/                   Redis cache-aside
   reranker/                Rerank seam (currently passthrough)
 models/                  export_model.py (tracked); .onnx/.onnx.data/vocab.txt
@@ -170,15 +185,19 @@ data/                    corpus.jsonl (tracked); bm25.idx/embeddings.bin
 - **Embeddings run in C++ via ONNX Runtime.** Python only used once, in a
   disposable venv, to export `all-MiniLM-L6-v2` from PyTorch to ONNX. No
   Python at runtime.
-- **Reranker is a passthrough on purpose**, not a placeholder pretending to
-  do something. It exists so Controller genuinely calls a fourth service —
-  completes the fan-out — without claiming a ranking improvement that isn't
-  implemented. Real logic (e.g. exact-phrase-match bonus) would go here
-  later.
+- **Reranker is currently a passthrough.** It exists so Controller calls a
+  fourth service, completing the fan-out, even though no ranking improvement
+  is implemented yet. Real logic (e.g. exact-phrase-match bonus) would go
+  here later.
 - **Tracing = correlation ID + logs, not Prometheus/Jaeger/Grafana.** Decided
   the full stack was disproportionate for this scale; correlation-ID logging
   gets the same value (reconstruct one request across all services) with
   much less operational overhead.
+- **Circuit breaker recovery uses a dedicated health check, not a live
+  request.** The Half-Open trial calls gRPC's standard `Check()` RPC
+  (vendored `proto/health.proto`) instead of firing a real search — cheaper,
+  and doesn't risk an expensive/slow query being the thing that decides
+  whether the breaker re-closes.
 
 ---
 
@@ -187,6 +206,6 @@ data/                    corpus.jsonl (tracked); bm25.idx/embeddings.bin
 - Phase 1 (spine): done
 - Phase 2 (cache, hybrid search, reranking): done
 - Phase 3 (tracing, simplified): done
-- Phase 4 (reliability — deadlines, retries, circuit breaker, load shedding): not started
+- Phase 4 (reliability — deadlines, retries, circuit breaker, health checks, bounded thread pool + load shedding): done
 - Phase 5 (Kafka off-path logging, load test numbers): not started
 - Phase 6 (design doc): not started
