@@ -11,9 +11,7 @@ namespace {
 constexpr double kRrfK = 60.0;
 }  // namespace
 
-std::vector<common::ScoredDoc> MergeRRF(const std::vector<common::ScoredDoc>& bm25_results,
-                                         const std::vector<AnnResult>& vector_results,
-                                         int top_k) {
+std::vector<common::ScoredDoc> MergeRRF(const std::vector<common::ScoredDoc>& bm25_results, const std::vector<AnnResult>& vector_results, int top_k) {
   std::unordered_map<int, double> fused_scores;
 
   for (size_t rank = 0; rank < bm25_results.size(); ++rank) {
@@ -32,10 +30,7 @@ std::vector<common::ScoredDoc> MergeRRF(const std::vector<common::ScoredDoc>& bm
     results.push_back(common::ScoredDoc{doc_id, score});
   }
 
-  std::sort(results.begin(), results.end(),
-            [](const common::ScoredDoc& a, const common::ScoredDoc& b) {
-              return a.score > b.score;
-            });
+  std::sort(results.begin(), results.end(), [](const common::ScoredDoc& a, const common::ScoredDoc& b) { return a.score > b.score; });
 
   if (static_cast<int>(results.size()) > top_k) {
     results.resize(top_k);

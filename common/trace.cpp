@@ -35,8 +35,7 @@ void AttachTraceId(grpc::ClientContext* context, const std::string& trace_id) {
   context->AddMetadata(kTraceIdMetadataKey, trace_id);
 }
 
-void LogStage(const std::string& trace_id, const std::string& service, const std::string& stage,
-              std::chrono::steady_clock::duration duration) {
+void LogStage(const std::string& trace_id, const std::string& service, const std::string& stage, std::chrono::steady_clock::duration duration) {
   double ms = std::chrono::duration<double, std::milli>(duration).count();
   std::printf("[%s] %s: %s took %.2fms\n", trace_id.c_str(), service.c_str(), stage.c_str(), ms);
   std::fflush(stdout);

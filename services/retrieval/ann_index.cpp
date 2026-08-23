@@ -17,8 +17,7 @@ AnnIndex::AnnIndex(const std::string& embeddings_path) {
   }
 }
 
-std::vector<AnnResult> AnnIndex::Search(const std::vector<float>& query_embedding,
-                                         int top_k) const {
+std::vector<AnnResult> AnnIndex::Search(const std::vector<float>& query_embedding, int top_k) const {
   auto result_queue = index_->searchKnn(query_embedding.data(), top_k);
 
   std::vector<AnnResult> results;

@@ -23,7 +23,6 @@ void AttachTraceId(grpc::ClientContext* context, const std::string& trace_id);
 // Logs one stage's timing in a format every service uses
 // consistently, so log lines from different processes can be
 // correlated by trace_id.
-void LogStage(const std::string& trace_id, const std::string& service, const std::string& stage,
-              std::chrono::steady_clock::duration duration);
+void LogStage(const std::string& trace_id, const std::string& service, const std::string& stage, std::chrono::steady_clock::duration duration);
 
 }  // namespace common

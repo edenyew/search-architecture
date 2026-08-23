@@ -15,7 +15,6 @@ namespace retrieval {
 // different scales, so rank position is what makes them combinable
 // at all. Returns the top_k highest fused-score documents, best
 // first.
-std::vector<common::ScoredDoc> MergeRRF(const std::vector<common::ScoredDoc>& bm25_results,
-                                         const std::vector<AnnResult>& vector_results, int top_k);
+std::vector<common::ScoredDoc> MergeRRF(const std::vector<common::ScoredDoc>& bm25_results, const std::vector<AnnResult>& vector_results, int top_k);
 
 }  // namespace retrieval
