@@ -75,21 +75,21 @@ its bounded worker pool's queue is full, instead of queueing unbounded work.
 
 ## Tech stack
 
-| Concern | Choice |
-|---|---|
-| Services / indexer | C++20 |
-| Internal RPC | gRPC + Protobuf |
-| Edge REST | Crow |
-| Concurrency | Bounded thread pool (Retrieval) + `std::future` for async results |
-| BM25 index | Custom inverted index, custom binary serialization |
-| Tokenization (BM25) | Custom whitespace/punctuation tokenizer |
-| Tokenization (embeddings) | Custom WordPiece tokenizer — verified against HuggingFace's tokenizer output |
-| Embedding model | `all-MiniLM-L6-v2`, exported to ONNX offline once, run via ONNX Runtime C++ API |
-| Vector index | `hnswlib` (vendored, header-only) |
-| Fusion | Custom RRF implementation |
-| Cache | Redis + `redis-plus-plus` |
-| Tracing | Trace ID via gRPC metadata + structured logs |
-| Build | CMake |
+| Concern                   | Choice                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| Services / indexer        | C++20                                                                           |
+| Internal RPC              | gRPC + Protobuf                                                                 |
+| Edge REST                 | Crow                                                                            |
+| Concurrency               | Bounded thread pool (Retrieval) + `std::future` for async results               |
+| BM25 index                | Custom inverted index, custom binary serialization                              |
+| Tokenization (BM25)       | Custom whitespace/punctuation tokenizer                                         |
+| Tokenization (embeddings) | Custom WordPiece tokenizer — verified against HuggingFace's tokenizer output    |
+| Embedding model           | `all-MiniLM-L6-v2`, exported to ONNX offline once, run via ONNX Runtime C++ API |
+| Vector index              | `hnswlib` (vendored, header-only)                                               |
+| Fusion                    | Custom RRF implementation                                                       |
+| Cache                     | Redis + `redis-plus-plus`                                                       |
+| Tracing                   | Trace ID via gRPC metadata + structured logs                                    |
+| Build                     | CMake                                                                           |
 
 ---
 
@@ -147,65 +147,3 @@ Trace a request:
 # get the trace ID from gateway's log, then:
 grep "\[<trace_id>\]" /tmp/*.log
 ```
-
----
-
-## Layout
-
-```
-proto/                  gRPC contracts — defines every service boundary
-                         (health.proto: vendored standard gRPC health-check
-                         protocol, used by Controller's circuit breaker)
-common/                 Shared: corpus loading, BM25 index, WordPiece tokenizer,
-                         ONNX embedder, embedding store, trace propagation
-indexer/                 Offline: corpus → BM25 index + embeddings
-services/
-  gateway/               REST edge, generates trace ID, sets request deadline
-  controller/             classify() + orchestrate(): fan-out, merge, retry,
-                           circuit breaker (circuit_breaker.h/.cpp)
-  retrieval/               BM25 ‖ vector + RRF fusion, bounded worker pool
-                           + load shedding (thread_pool.h/.cpp)
-  cache/                   Redis cache-aside
-  reranker/                Rerank seam (currently passthrough)
-models/                  export_model.py (tracked); .onnx/.onnx.data/vocab.txt
-                         are generated, gitignored — rerun the script to reproduce
-third_party/hnswlib/     Vendored header-only ANN library
-data/                    corpus.jsonl (tracked); bm25.idx/embeddings.bin
-                         generated, gitignored
-```
-
----
-
-## Notes to self on specific decisions
-
-- **Implemented from scratch: BM25, WordPiece tokenizer, RRF.** Not: gRPC,
-  protobuf, JSON, Redis client, ONNX inference, ANN search (hnswlib). Rule
-  used: implement what's the actual point of the exercise, use a library for
-  everything else.
-- **Embeddings run in C++ via ONNX Runtime.** Python only used once, in a
-  disposable venv, to export `all-MiniLM-L6-v2` from PyTorch to ONNX. No
-  Python at runtime.
-- **Reranker is currently a passthrough.** It exists so Controller calls a
-  fourth service, completing the fan-out, even though no ranking improvement
-  is implemented yet. Real logic (e.g. exact-phrase-match bonus) would go
-  here later.
-- **Tracing = correlation ID + logs, not Prometheus/Jaeger/Grafana.** Decided
-  the full stack was disproportionate for this scale; correlation-ID logging
-  gets the same value (reconstruct one request across all services) with
-  much less operational overhead.
-- **Circuit breaker recovery uses a dedicated health check, not a live
-  request.** The Half-Open trial calls gRPC's standard `Check()` RPC
-  (vendored `proto/health.proto`) instead of firing a real search — cheaper,
-  and doesn't risk an expensive/slow query being the thing that decides
-  whether the breaker re-closes.
-
----
-
-## Status
-
-- Phase 1 (spine): done
-- Phase 2 (cache, hybrid search, reranking): done
-- Phase 3 (tracing, simplified): done
-- Phase 4 (reliability — deadlines, retries, circuit breaker, health checks, bounded thread pool + load shedding): done
-- Phase 5 (Kafka off-path logging, load test numbers): not started
-- Phase 6 (design doc): not started
